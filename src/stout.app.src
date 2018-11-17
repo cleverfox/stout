@@ -1,8 +1,8 @@
-{application, clog,
+{application, stout,
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, { clog_app, []}},
+  {mod, { stout_app, []}},
   {applications,
    [kernel,
     stdlib

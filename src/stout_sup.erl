@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc clog top level supervisor.
+%% @doc stout top level supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module(clog_sup).
+-module(stout_sup).
 
 -behaviour(supervisor).
 
@@ -33,7 +33,7 @@ start_link() ->
 init([]) ->
   {ok, { {one_for_all, 0, 1},
          [
-          #{id=>clog_conf, start=>{ clog_conf, start_link, [] } }
+          #{id=>stout_conf, start=>{ stout_conf, start_link, [] } }
          ]
        } }.
 

@@ -1,4 +1,4 @@
--module(clog_sink_file).
+-module(stout_sink_file).
 -author("cleverfox <devel@viruzzz.org>").
 -create_date("2018-11-15").
 

@@ -1,4 +1,4 @@
--module(clog_genhdr).
+-module(stout_genhdr).
 -export([main/1]).
 
 main(_) ->
@@ -6,8 +6,8 @@ main(_) ->
 
 lognames() ->
   %filelib:wildcard("apps/**/*.{erl,hrl}").
-  SearchPaths=filelib:wildcard("apps/**/*.clogmsg")
-  ++ filelib:wildcard("src/**/*.clogmsg"),
+  SearchPaths=filelib:wildcard("apps/**/*.stoutmsg")
+  ++ filelib:wildcard("src/**/*.stoutmsg"),
   Messages=lists:foldl(
     fun(Filename, Acc) ->
         {ok, F} = file:consult(Filename),
@@ -23,11 +23,11 @@ lognames() ->
   MsgFmt=[ {N,F} || {N,F,_} <- Messages ],
   MsgOpt=[ {N,O} || {N,_,O} <- Messages ],
   ok = filelib:ensure_dir("include/"),
-  file:write_file("include/clog_names.hrl",
+  file:write_file("include/stout_names.hrl",
                   [
-                  io_lib:format("-define(CLOG_NAMES,~p).~n", [MsgNames]),
-                  io_lib:format("-define(CLOG_FORMATS,~p).~n", [maps:from_list(MsgFmt)]),
-                  io_lib:format("-define(CLOG_OPTS,~p).~n", [maps:from_list(MsgOpt)])
+                  io_lib:format("-define(STOUT_NAMES,~p).~n", [MsgNames]),
+                  io_lib:format("-define(STOUT_FORMATS,~p).~n", [maps:from_list(MsgFmt)]),
+                  io_lib:format("-define(STOUT_OPTS,~p).~n", [maps:from_list(MsgOpt)])
                   ]
                  ).
 

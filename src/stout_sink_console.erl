@@ -1,8 +1,8 @@
--module(clog_sink_console).
+-module(stout_sink_console).
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
--include("include/clog_names.hrl").
+-include("include/stout_names.hrl").
 
 -define(DEFAULT_SYNC_INTERVAL, 1000).
 -define(DEFAULT_SYNC_SIZE, 1024*64). %% 64kb

@@ -1,8 +1,8 @@
--module(clog_conf).
+-module(stout_conf).
 -author("cleverfox <devel@viruzzz.org>").
 -create_date("2018-11-15").
 
--include("include/clog_names.hrl").
+-include("include/stout_names.hrl").
 
 -behaviour(gen_server).
 -define(TABLE, stout_routes).
@@ -56,20 +56,20 @@ handle_info(reload, #{pre_wrk:=Pre}=State) ->
             maps:put(ID,Wrk,Acc);
           true ->
             if(Old==undefined) ->
-                supervisor:start_child(clog_sup,Wrk),
+                supervisor:start_child(stout_sup,Wrk),
                 maps:put(ID,Wrk,Acc);
               true ->
-                supervisor:terminate_child(clog_sup,ID),
-                supervisor:delete_child(clog_sup,ID),
-                supervisor:start_child(clog_sup,Wrk),
+                supervisor:terminate_child(stout_sup,ID),
+                supervisor:delete_child(stout_sup,ID),
+                supervisor:start_child(stout_sup,Wrk),
                 maps:put(ID,Wrk,Acc)
             end
         end
     end, #{}, Workers),
   Delete=maps:keys(Pre)--maps:keys(Post),
   lists:foreach(fun(ID) ->
-                    supervisor:terminate_child(clog_sup,ID),
-                    supervisor:delete_child(clog_sup,ID)
+                    supervisor:terminate_child(stout_sup,ID),
+                    supervisor:delete_child(stout_sup,ID)
                 end, Delete),
   RT=rt_table(Config),
   ets:insert(?TABLE,RT),
@@ -95,7 +95,7 @@ fix_route({Kind, Dst}) when is_atom(Dst) ->
   fix_route({Kind, Dst, []});
 
 fix_route({any, Dst, Lst}) when is_atom(Dst), is_list(Lst) ->
-  {?CLOG_NAMES, Dst, Lst};
+  {?STOUT_NAMES, Dst, Lst};
 
 fix_route({Kind, Dst, Lst}) when is_atom(Dst), is_list(Lst),
                                  is_atom(Kind) ->
@@ -132,7 +132,7 @@ rt_table(Config) ->
               maps:put(Msg,[Dst|L0],Acc1)
           end, Acc, Messages)
     end, #{}, Routes),
-  [ {K,V, maps:get(K,?CLOG_OPTS,[])} || {K,V} <- maps:to_list(Map) ].
+  [ {K,V, maps:get(K,?STOUT_OPTS,[])} || {K,V} <- maps:to_list(Map) ].
 
 compile_filter(Filter) ->
   FunSrc=lists:flatten("fun(Params) -> "++compile_filter_clause(Filter)++" end."),
@@ -152,7 +152,7 @@ compile_filter_clause([{Key,Value}|Rest]) ->
    " _ -> false end"].
 
 read_config() ->
-  Filename=application:get_env(clog,configfile,"clog.conf"),
+  Filename=application:get_env(stout,configfile,"stout.conf"),
   Config=case file:consult(Filename) of
            {ok, Cfg} ->
              Cfg;
@@ -168,9 +168,9 @@ default_config() ->
   [
    {sinks, 
     [
-     {console, clog_sink_console, #{}},
-     {sink1, clog_sink_file, #{filename=>"log/sink1.clog"}},
-     {debug, clog_sink_file, #{filename=>"log/debug.clog"}}
+     {console, stout_sink_console, #{}},
+     {sink1, stout_sink_file, #{filename=>"log/sink1.stout"}},
+     {debug, stout_sink_file, #{filename=>"log/debug.stout"}}
     ]
    },
    {routing, 

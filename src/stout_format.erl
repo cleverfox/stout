@@ -2,13 +2,13 @@
 -author("cleverfox <devel@viruzzz.org>").
 -create_date("2018-11-17").
 
--include("include/clog_names.hrl").
+-include("include/stout_names.hrl").
 
 -export([format/2]).
 
 format(Kind, Args) ->
   try
-  #{Kind:=Format}=?CLOG_FORMATS,
+  #{Kind:=Format}=?STOUT_FORMATS,
   lists:flatten(
     lists:map(
       fun(E) when is_list(E) -> E;

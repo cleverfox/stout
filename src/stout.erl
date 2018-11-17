@@ -1,14 +1,14 @@
--module(clog).
+-module(stout).
 -export([start/0,stop/0,log/5,log/2,log_to/3,md/1]).
 
 start() ->
-  application:start(clog).
+  application:start(stout).
 
 stop() ->
-  application:stop(clog).
+  application:stop(stout).
 
 md(Proplist) ->
-  Pre=case get(clog_md) of
+  Pre=case get(stout_md) of
         undefined -> [];
         L when is_list(L) -> L
       end,
@@ -16,11 +16,11 @@ md(Proplist) ->
     fun({K,V},Acc) ->
         [{K,V}|lists:keydelete(K,1,Acc)]
     end, Pre, Proplist),
-  put(clog_md,New).
+  put(stout_md,New).
 
 log_to(Sink, Kind,Data) when is_atom(Kind), is_list(Data) ->
   T=os:system_time(),
-  MD=case get(clog_md) of
+  MD=case get(stout_md) of
        undefined -> Data;
        L when is_list(L) -> Data++L
      end,
@@ -36,7 +36,7 @@ log(Kind, Data, File, Line, Stack) ->
 log(Kind,Data) when is_atom(Kind),
                     is_list(Data) ->
   T=erlang:system_time(),
-  MD=case get(clog_md) of
+  MD=case get(stout_md) of
        undefined -> Data;
        L when is_list(L) -> Data++L 
      end,
