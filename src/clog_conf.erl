@@ -3,16 +3,16 @@
 -create_date("2018-11-15").
 
 -include("include/clog_names.hrl").
--include_lib("syntax_tools/include/merl.hrl").
 
 -behaviour(gen_server).
 -define(TABLE, stout_routes).
+-define(TABLES, stout_alive).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0,read_config/0,rt_table/1]).
+-export([start_link/0,read_config/0,rt_table/1,spawn_sinks/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -34,8 +34,9 @@ start_link() ->
 
 init(_Args) ->
   ?TABLE=ets:new(?TABLE,[named_table,protected,set,{read_concurrency,true}]),
+  ?TABLES=ets:new(?TABLES,[named_table,public,set,{read_concurrency,true}]),
   self() ! reload,
-  {ok, #{}}.
+  {ok, #{pre_wrk=>#{}}}.
 
 handle_call(_Request, _From, State) ->
   lager:notice("Unknown call ~p",[_Request]),
@@ -45,11 +46,34 @@ handle_cast(_Msg, State) ->
   lager:notice("Unknown cast ~p",[_Msg]),
   {noreply, State}.
 
-handle_info(reload, State) ->
+handle_info(reload, #{pre_wrk:=Pre}=State) ->
   Config=read_config(),
-  RT=maps:to_list(rt_table(Config)),
+  Workers=spawn_sinks(Config),
+  Post=lists:foldl(
+    fun(#{id:=ID}=Wrk,Acc) ->
+        Old=maps:get(ID,Pre,undefined),
+        if(Wrk==Old) ->
+            maps:put(ID,Wrk,Acc);
+          true ->
+            if(Old==undefined) ->
+                supervisor:start_child(clog_sup,Wrk),
+                maps:put(ID,Wrk,Acc);
+              true ->
+                supervisor:terminate_child(clog_sup,ID),
+                supervisor:delete_child(clog_sup,ID),
+                supervisor:start_child(clog_sup,Wrk),
+                maps:put(ID,Wrk,Acc)
+            end
+        end
+    end, #{}, Workers),
+  Delete=maps:keys(Pre)--maps:keys(Post),
+  lists:foreach(fun(ID) ->
+                    supervisor:terminate_child(clog_sup,ID),
+                    supervisor:delete_child(clog_sup,ID)
+                end, Delete),
+  RT=rt_table(Config),
   ets:insert(?TABLE,RT),
-  {noreply, State};
+  {noreply, State#{pre_wrk=>Post}};
 
 handle_info(_Info, State) ->
   lager:notice("Unknown info  ~p",[_Info]),
@@ -81,17 +105,25 @@ fix_route({Kind, Dst, Lst}) when is_atom(Dst), is_list(Lst),
                                  is_list(Kind) ->
   {Kind, Dst, Lst}.
 
+spawn_sinks(Config) ->
+  Sinks=proplists:get_value(sinks, Config, []),
+  lists:map(
+    fun({ID, Type, Opts}) ->
+        #{id=>atom2log(ID), start=>{Type, start_link, [atom2log(ID), Opts ] } }
+    end,
+    Sinks).
+
 rt_table(Config) ->
   Routes0=proplists:get_value(routing, Config, []),
   Routes=lists:map(fun fix_route/1, Routes0),
-  lists:foldl(
+  Map=lists:foldl(
     fun({Messages, Sink, Filter},Acc) ->
         Dst=case Filter of
-              [] -> Sink;
+              [] -> atom2log(Sink);
               [{_,_}|_] ->
                 {
                  compile_filter(Filter),
-                 Sink
+                 atom2log(Sink)
                 }
             end,
         lists:foldl(
@@ -99,7 +131,8 @@ rt_table(Config) ->
               L0=maps:get(Msg, Acc1, []),
               maps:put(Msg,[Dst|L0],Acc1)
           end, Acc, Messages)
-    end, #{}, Routes).
+    end, #{}, Routes),
+  [ {K,V, maps:get(K,?CLOG_OPTS,[])} || {K,V} <- maps:to_list(Map) ].
 
 compile_filter(Filter) ->
   FunSrc=lists:flatten("fun(Params) -> "++compile_filter_clause(Filter)++" end."),
@@ -108,27 +141,28 @@ compile_filter(Filter) ->
   {value, Result, _} = erl_eval:exprs(Parsed, erl_eval:new_bindings()),
   Result.
 
-%merl:show(merl:quote("fun(Params) -> case lists:keyfind(module,1,Params) of blockchain -> case lists:keyfind(username,1,Params) of \"ivan\" -> true; _ -> false end; _ -> false end end")).
-%
 compile_filter_clause([]) ->
   "true";
 
 compile_filter_clause([{Key,Value}|Rest]) ->
   [
-   io_lib:format("case lists:keyfind(~s,1,Params) of {~s,~p} -> ",[Key,Key,Value]),
+   io_lib:format("case lists:keyfind(~s,1,Params) of {~s,~p} -> ",
+                 [Key,Key,Value]),
    compile_filter_clause(Rest), ";",
    " _ -> false end"].
 
 read_config() ->
-  Filename=application:get_env(clog,file,"clog.conf"),
+  Filename=application:get_env(clog,configfile,"clog.conf"),
   Config=case file:consult(Filename) of
            {ok, Cfg} ->
              Cfg;
            {error, enoent} ->
              default_config()
-
          end,
   Config.
+
+atom2log(Atom) ->
+  list_to_atom("stout_"++atom_to_list(Atom)).
 
 default_config() ->
   [
@@ -141,10 +175,10 @@ default_config() ->
    },
    {routing, 
     [
-     {any, debug, [{module, blockchain},{username, "ivan"}]},
-     {any, debug1, [{module, blockchain},{username, "debug1"}]},
-     {[accept_block,mkblock_debug], sink1},
-     {[test1], console, [{var1,1}]}
+     {any, console, []},
+     {any, debug, []}
+     %{[accept_block,mkblock_debug], sink1},
+     %{[test1], console, [{var1,1}]}
     ]
    }
   ].

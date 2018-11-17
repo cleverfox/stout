@@ -33,17 +33,7 @@ start_link() ->
 init([]) ->
   {ok, { {one_for_all, 0, 1},
          [
-          #{id=>console,
-            start=>{clog_sink_console,
-                    start_link,
-                    [console, #{} ]
-                   }
-           },
-          #{id=>sink1,
-            start=>{clog_sink_file,start_link,[sink1, 
-                                               #{filename=> "log/sink1.log"}
-                                              ]}
-           }
+          #{id=>clog_conf, start=>{ clog_conf, start_link, [] } }
          ]
        } }.
 

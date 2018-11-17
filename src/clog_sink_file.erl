@@ -26,7 +26,7 @@
 %% ------------------------------------------------------------------
 
 start_link(Name,#{filename:=_}=Opts) when is_atom(Name) ->
-    gen_server:start_link({local, Name}, ?MODULE, Opts, []).
+    gen_server:start_link({local, Name}, ?MODULE, Opts#{name=>Name}, []).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -49,7 +49,11 @@ handle_cast(_Msg, State) ->
   lager:notice("Unknown cast ~p",[_Msg]),
   {noreply, State}.
 
-handle_info(heartbeat, #{htimer:=T,filename:=Filename, size:=MaxSize}=State) ->
+handle_info({heartbeat, PreT},
+            #{name:=Name,
+              htimer:=T,
+              filename:=Filename,
+              size:=MaxSize}=State) ->
   erlang:cancel_timer(T),
   State1=case is_rotation_needed(Filename, MaxSize) of
            true ->
@@ -57,16 +61,24 @@ handle_info(heartbeat, #{htimer:=T,filename:=Filename, size:=MaxSize}=State) ->
            false ->
              State
          end,
-  T1=erlang:send_after(2000,self(),heartbeat),
+  Timestamp=erlang:system_time(),
+  T1=erlang:send_after(2000,self(),{heartbeat,Timestamp}),
+  if(Timestamp-PreT < 3000) ->
+      ets:insert(stout_alive,{Name,Timestamp});
+    true -> busy
+  end,
   {noreply, State1#{htimer=>T1}};
 
 handle_info(init, #{filename:=F,
                     unintialized:=true,
                     sync_size:=SyncSize,
-                    sync_interval:=SyncInterval
+                    sync_interval:=SyncInterval,
+                    name:=Name
                    }=State) ->
   {ok, {FD, Inode, _Size}} = open_logfile(F, {SyncSize, SyncInterval}),
-  T=erlang:send_after(2000,self(),heartbeat),
+  ets:insert(stout_alive,{Name,erlang:system_time()}),
+  Timestamp=erlang:system_time(),
+  T=erlang:send_after(2000,self(),{heartbeat,Timestamp}),
   {noreply, maps:remove(unintialized,
                         State#{
                           htimer=>T,
