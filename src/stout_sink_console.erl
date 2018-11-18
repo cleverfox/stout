@@ -57,11 +57,12 @@ handle_info({log, Timestamp, Kind, PropList}, State) when
     is_integer(Timestamp),
     is_atom(Kind),
     is_list(PropList)->
-  Res=stout_format:format(Kind,PropList),
+  {Date,Time}=stout_format:format_time(Timestamp),
+  Res=stout_format:format(Kind,[{date,Date},{time,Time}|PropList]),
   if is_list(Res) ->
-       erlang:display_string(Res);
+       erlang:display_string(Res++"\n");
      true ->
-       erlang:display()
+       erlang:display({Kind,PropList})
   end,
   {noreply, State};
 

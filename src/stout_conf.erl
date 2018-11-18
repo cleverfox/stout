@@ -169,8 +169,8 @@ default_config() ->
    {sinks, 
     [
      {console, stout_sink_console, #{}},
-     {sink1, stout_sink_file, #{filename=>"log/sink1.stout"}},
-     {debug, stout_sink_file, #{filename=>"log/debug.stout"}}
+     {sink1, stout_sink_file, #{filename=>"log/sink1.log"}},
+     {debug, stout_sink_file, #{filename=>"log/sdebug.log"}}
     ]
    },
    {routing, 

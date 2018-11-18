@@ -6,8 +6,8 @@ main(_) ->
 
 lognames() ->
   %filelib:wildcard("apps/**/*.{erl,hrl}").
-  SearchPaths=filelib:wildcard("apps/**/*.stoutmsg")
-  ++ filelib:wildcard("src/**/*.stoutmsg"),
+  SearchPaths=filelib:wildcard("apps/**/*.stout")
+  ++ filelib:wildcard("src/**/*.stout"),
   Messages=lists:foldl(
     fun(Filename, Acc) ->
         {ok, F} = file:consult(Filename),

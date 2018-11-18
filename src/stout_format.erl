@@ -4,7 +4,26 @@
 
 -include("include/stout_names.hrl").
 
--export([format/2]).
+-export([format/2,t2now/1,format_time/1,known_kinds/0,formats/0]).
+
+t2now(T) ->
+  USec=(T rem 1000000000) div 1000,
+  RSec=T  div 1000000000,
+  MegaSec=RSec div 1000000,
+  Sec=RSec rem 1000000,
+  Now={MegaSec, Sec, USec},
+  {Date, {Hours, Minutes, Seconds}} = calendar:now_to_local_time(Now),
+  {Date, {Hours, Minutes, Seconds, USec div 1000 rem 1000}}.
+
+i2l(I) when I < 10  -> [$0, $0+I];
+i2l(I)              -> integer_to_list(I).
+i3l(I) when I < 100 -> [$0 | i2l(I)];
+i3l(I)              -> integer_to_list(I).
+
+format_time(T) ->
+  {{Y, M, D}, {H, Mi, S, Ms}}=t2now(T),
+  {[integer_to_list(Y), $-, i2l(M), $-, i2l(D)],
+   [i2l(H), $:, i2l(Mi), $:, i2l(S), $., i3l(Ms)]}.
 
 format(Kind, Args) ->
   try
@@ -15,6 +34,7 @@ format(Kind, Args) ->
          (E) when is_atom(E) ->
           case lists:keyfind(E,1,Args) of
             {E, Val} when is_integer(Val) -> integer_to_list(Val);
+            {E, Val} when E==time; E==date -> io_lib:format("~s",[Val]);
             {E, Val} -> io_lib:format("~p",[Val]);
             false -> "?"
           end
@@ -24,3 +44,7 @@ format(Kind, Args) ->
           {Kind,Args}  
   end.
 
+known_kinds() ->
+  ?STOUT_NAMES.
+formats() ->
+  ?STOUT_FORMATS.

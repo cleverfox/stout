@@ -93,8 +93,13 @@ handle_info({log, Timestamp, Kind, PropList}, #{fd:=FD}=State) when
     is_integer(Timestamp),
     is_atom(Kind),
     is_list(PropList)->
-  Bin=erlang:term_to_binary({Kind,PropList}),
-  _ = file:write(FD, [<<Timestamp:64/big,(size(Bin)):32/big>>, Bin]),
+  {Date,Time}=stout_format:format_time(Timestamp),
+  Res=stout_format:format(Kind,[{date,Date},{time,Time}|PropList]),
+  if is_list(Res) ->
+       _ = file:write(FD, [Res,"\n"]);
+     true -> %fallback for unknown messages
+       _ = file:write(FD, [io_lib:format("~s: ~p",[Kind,PropList])])
+  end,
   {noreply, State};
 
 handle_info(_Info, State) ->
