@@ -1,5 +1,5 @@
 -module(stout).
--export([start/0,stop/0,log/5,log/2,log_to/3,md/1]).
+-export([start/0,stop/0,log/5,log/4,log/2,log_to/3,md/1]).
 
 start() ->
   application:start(stout).
@@ -31,10 +31,14 @@ log_to(Sink, Kind,Data) when is_atom(Kind), is_list(Data) ->
   end.
 
 log(Kind, Data, File, Line, Stack) ->
-  log(Kind, [{at_filename,File},{at_line,Line},{at_stack,Stack}|Data]).
+  log(Kind, [{module,File},{line,Line},{stacktrace,Stack}|Data]).
+
+log(Kind, Data, File, Line) ->
+  log(Kind, [{module,File},{line,Line}|Data]).
 
 log(Kind,Data) when is_atom(Kind),
                     is_list(Data) ->
+  %io:format("~s Args ~p~n",[Kind,Data]),
   T=erlang:system_time(),
   MD=case get(stout_md) of
        undefined -> Data;

@@ -31,7 +31,7 @@ start_link() ->
 %% Before OTP 18 tuples must be used to specify a child. e.g.
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-  {ok, { {one_for_all, 0, 1},
+  {ok, { {one_for_one, 5, 10},
          [
           #{id=>stout_conf, start=>{ stout_conf, start_link, [] } }
          ]

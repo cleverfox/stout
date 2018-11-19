@@ -132,6 +132,7 @@ rt_table(Config) ->
               maps:put(Msg,[Dst|L0],Acc1)
           end, Acc, Messages)
     end, #{}, Routes),
+  io:format("Map ~p",[Map]),
   [ {K,V, maps:get(K,?STOUT_OPTS,[])} || {K,V} <- maps:to_list(Map) ].
 
 compile_filter(Filter) ->
