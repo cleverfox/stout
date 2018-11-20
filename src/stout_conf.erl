@@ -108,7 +108,13 @@ fix_route({Kind, Dst, Lst}) when is_atom(Dst), is_list(Lst),
 spawn_sinks(Config) ->
   Sinks=proplists:get_value(sinks, Config, []),
   lists:map(
-    fun({ID, Type, Opts}) ->
+    fun({ID, Type, Opts0}) ->
+        Opts=maps:map(
+               fun(filename, Path) ->
+                   lists:flatten(string:replace(Path,"%node%",atom_to_list(erlang:node())));
+                  (_, Val) ->
+                   Val
+               end, Opts0),
         #{id=>atom2log(ID), start=>{Type, start_link, [atom2log(ID), Opts ] } }
     end,
     Sinks).
