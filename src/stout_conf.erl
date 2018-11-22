@@ -176,13 +176,13 @@ default_config() ->
    {sinks, 
     [
      {console, stout_sink_console, #{}},
-     {sink1, stout_sink_file, #{filename=>"log/sink1.log"}},
+     {sink1, stout_sink_binfile, #{filename=>"log/sink1.log"}},
      {debug, stout_sink_file, #{filename=>"log/sdebug.log"}}
     ]
    },
    {routing, 
     [
-     {any, console, []},
+     %{any, console, []},
      {any, debug, []}
      %{[accept_block,mkblock_debug], sink1},
      %{[test1], console, [{var1,1}]}
