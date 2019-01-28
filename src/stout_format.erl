@@ -41,6 +41,7 @@ format(Kind, Args) ->
          ({{M,F},E}) when is_atom(M), is_atom(F), is_atom(E) ->
           case {erlang:function_exported(M,F,1),
                 lists:keyfind(E,1,Args)} of
+            {_, false} -> "?";
             {true, {E,Val}} -> M:F(Val);
             {false, {E, Val}} when is_integer(Val) -> integer_to_list(Val);
             {false, {E, Val}} when E==time; E==date -> io_lib:format("~s",[Val]);
