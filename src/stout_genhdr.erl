@@ -5,9 +5,11 @@ main(_) ->
   lognames().
 
 lognames() ->
-  %filelib:wildcard("apps/**/*.{erl,hrl}").
-  SearchPaths=filelib:wildcard("apps/**/*.stout")
-  ++ filelib:wildcard("src/**/*.stout"),
+  Root = os:getenv("REBAR_ROOT_DIR", "."),
+  
+  %filelib:wildcard(Root ++ "/apps/**/*.{erl,hrl}").
+  SearchPaths=filelib:wildcard(Root ++ "/apps/**/*.stout")
+  ++ filelib:wildcard(Root ++ "/src/**/*.stout"),
   Messages=lists:foldl(
     fun(Filename, Acc) ->
         {ok, F} = file:consult(Filename),
@@ -22,8 +24,8 @@ lognames() ->
   MsgNames=[ N || {N,_,_} <- Messages ],
   MsgFmt=[ {N,F} || {N,F,_} <- Messages ],
   MsgOpt=[ {N,O} || {N,_,O} <- Messages ],
-  ok = filelib:ensure_dir("include/"),
-  file:write_file("include/stout_names.hrl",
+  ok = filelib:ensure_dir(Root ++ "/include/"),
+  file:write_file(Root ++ "/include/stout_names.hrl",
                   [
                   io_lib:format("-define(STOUT_NAMES,~p).~n", [MsgNames]),
                   io_lib:format("-define(STOUT_FORMATS,~p).~n", [maps:from_list(MsgFmt)]),
