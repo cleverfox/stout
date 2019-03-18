@@ -1,0 +1,82 @@
+#!/usr/local/lib/erlang20/bin/escript
+
+main([Filter,Filename]) ->
+  AF=list_to_atom(Filter),
+  fold(fun(T, Kind, PL, Acc, _) ->
+           if(AF == Kind) ->
+               io:format("~s ~s ~p~n",[fmt_t(T),Kind,PL]);
+             true -> ok
+           end,
+           Acc
+       end, [], Filename);
+
+main([Filename]) ->
+  fold(fun(T, Kind, PL, Acc, _) ->
+           io:format("~w ~s ~p~n",[T,Kind,PL]),
+           Acc
+       end, [], Filename);
+
+main([]) ->
+  fold(fun(T, Kind, PL, Acc, _) ->
+           io:format("~w ~s ~p~n",[T,Kind,PL]),
+           Acc
+       end, [], stdin).
+
+
+%fold(Pred, Init, stdin) ->
+%  Port = open_port({fd, 0, 1}, [in, binary]),
+%  do_fold_port(Pred, Init, Port);
+
+fold(Pred, Init, Filename) ->
+  Options=[raw, read, binary, {read_ahead, 1024}],
+  case file:open(Filename, Options) of
+    {ok, FD} ->
+      Res=do_fold(Pred, Init, FD),
+      file:close(FD),
+      Res;
+    Any ->
+      io:format("Error ~p~n",[Any]),
+      Any
+  end.
+
+%do_fold_port(_Pred, _Acc, FD) ->
+%  receive
+%    {FD, {data, Bin}} ->
+%      io:format("Bin ~p~n",[Bin]);
+%    {FD, Bin} ->
+%      io:format("Bin1 ~p~n",[Bin]);
+%    Any ->
+%      io:format("Any ~p~n",[Any])
+%  after 5000 ->
+%          io:format("Timeout~n")
+%  end.
+
+do_fold(Pred, Acc, FD) ->
+  case file:read(FD, 12) of
+    {ok, <<T:64/big, Len:32/big>>} ->
+      case file:read(FD, Len) of
+        {ok, Bin} ->
+          {Kind, PL} = binary_to_term(Bin),
+          case Pred(T,Kind,PL,Acc,"") of
+            {break, Res} ->
+              Res;
+            Res ->
+              do_fold(Pred, Res, FD)
+          end;
+        eof ->
+          Acc;
+        {error, Reason} ->
+          throw({error, Reason})
+      end;
+    eof -> Acc;
+    {error, Reason} ->
+      throw({error, Reason})
+  end.
+
+fmt_t(T) ->
+%%  io:format("T2: ~p~n", [T]),
+  Sec=(T div 1000000000),
+  Ms=T div 100000 rem 10000,
+  {_,{H,M,S}}=calendar:gregorian_seconds_to_datetime(Sec + 62167230000),
+  io_lib:format("[~2..0B:~2..0B:~2..0B.~4..0B]",[H,M,S,Ms]).
+
