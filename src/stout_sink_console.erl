@@ -37,11 +37,11 @@ init(#{name:=Name}=Args) ->
   {ok, Args#{htimer=>T} }.
 
 handle_call(_Request, _From, State) ->
-  lager:notice("Unknown call ~p",[_Request]),
+  logger:notice("Unknown call ~p",[_Request]),
   {reply, unhandled, State}.
 
 handle_cast(_Msg, State) ->
-  lager:notice("Unknown cast ~p",[_Msg]),
+  logger:notice("Unknown cast ~p",[_Msg]),
   {noreply, State}.
 
 handle_info(heartbeat, #{htimer:=T,name:=Name}=State) ->
@@ -67,7 +67,7 @@ handle_info({log, Timestamp, Kind, PropList}, State) when
   {noreply, State};
 
 handle_info(_Info, State) ->
-  lager:notice("Unknown info  ~p",[_Info]),
+  logger:notice("Unknown info  ~p",[_Info]),
   {noreply, State}.
 
 terminate(_Reason, _State) ->

@@ -39,11 +39,11 @@ init(_Args) ->
   {ok, #{pre_wrk=>#{}}}.
 
 handle_call(_Request, _From, State) ->
-  lager:notice("Unknown call ~p",[_Request]),
+  logger:notice("Unknown call ~p",[_Request]),
   {reply, ok, State}.
 
 handle_cast(_Msg, State) ->
-  lager:notice("Unknown cast ~p",[_Msg]),
+  logger:notice("Unknown cast ~p",[_Msg]),
   {noreply, State}.
 
 handle_info(reload, #{pre_wrk:=Pre}=State) ->
@@ -76,7 +76,7 @@ handle_info(reload, #{pre_wrk:=Pre}=State) ->
   {noreply, State#{pre_wrk=>Post}};
 
 handle_info(_Info, State) ->
-  lager:notice("Unknown info  ~p",[_Info]),
+  logger:notice("Unknown info  ~p",[_Info]),
   {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -138,7 +138,6 @@ rt_table(Config) ->
               maps:put(Msg,[Dst|L0],Acc1)
           end, Acc, Messages)
     end, #{}, Routes),
-  io:format("Map ~p",[Map]),
   [ {K,V, maps:get(K,?STOUT_OPTS,[])} || {K,V} <- maps:to_list(Map) ].
 
 compile_filter(Filter) ->
@@ -160,30 +159,40 @@ compile_filter_clause([{Key,Value}|Rest]) ->
 
 read_config() ->
   Filename=application:get_env(stout,configfile,"stout.conf"),
-  Config=case file:consult(Filename) of
-           {ok, Cfg} ->
-             Cfg;
-           {error, enoent} ->
-             default_config()
-         end,
-  Config.
+  case filelib:is_regular(Filename) of
+    true ->
+      case file:consult(Filename) of
+        {ok, Cfg} ->
+          Cfg;
+        {error, _} ->
+          default_config()
+      end;
+    false ->
+      case application:get_all_env(stout) of
+        [] ->
+          default_config();
+        Conf ->
+          Conf
+      end
+  end.
 
 atom2log(Atom) ->
   list_to_atom("stout_"++atom_to_list(Atom)).
 
+%% default empty config, does not log anything
 default_config() ->
   [
    {sinks, 
     [
-     {console, stout_sink_console, #{}},
-     {sink1, stout_sink_binfile, #{filename=>"log/sink1.log"}},
-     {debug, stout_sink_file, #{filename=>"log/sdebug.log"}}
+     {console, stout_sink_console, #{}}
+     %{sink1, stout_sink_binfile, #{filename=>"log/sink1.log"}},
+     %{debug, stout_sink_file, #{filename=>"log/sdebug.log"}}
     ]
    },
    {routing, 
     [
      %{any, console, []},
-     {any, debug, []}
+     %{any, debug, []}
      %{[accept_block,mkblock_debug], sink1},
      %{[test1], console, [{var1,1}]}
     ]

@@ -42,11 +42,11 @@ init(#{filename:=_}=Args) ->
   {ok, maps:merge( Defaults, Args#{unintialized=>true}) }.
 
 handle_call(_Request, _From, State) ->
-  lager:notice("Unknown call ~p",[_Request]),
+  logger:notice("Unknown call ~p",[_Request]),
   {reply, unhandled, State}.
 
 handle_cast(_Msg, State) ->
-  lager:notice("Unknown cast ~p",[_Msg]),
+  logger:notice("Unknown cast ~p",[_Msg]),
   {noreply, State}.
 
 handle_info({heartbeat, PreT},
@@ -103,7 +103,7 @@ handle_info({log, Timestamp, Kind, PropList}, #{fd:=FD}=State) when
   {noreply, State};
 
 handle_info(_Info, State) ->
-  lager:notice("Unknown info  ~p",[_Info]),
+  logger:notice("Unknown info  ~p",[_Info]),
   {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -172,7 +172,7 @@ open_logfile(Name, Buffer) ->
                     [{delayed_write, Size, Interval}];
                 _ -> []
             end,
-            io:format("Opening file opts ~p~n",[Options]),
+            logger:info("Opening file ~s opts ~p~n",[Name, Options]),
             case file:open(Name, Options) of
                 {ok, FD} ->
                     case file:read_file_info(Name) of
